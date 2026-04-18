@@ -10,160 +10,126 @@ const https   = require('https');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET   = process.env.JWT_SECRET   || 'itd_secret_2024';
+const JWT_SECRET   = process.env.JWT_SECRET || 'itd_secret_2024';
 const STORAGE_FILE = path.join('/tmp', 'itd_data.json');
 
-// ─── Middleware ───────────────────────────────────────
 app.use(cors());
 app.use(express.json({ limit: '2mb' }));
 app.use(express.static(path.join(__dirname)));
 
-// ═══════════════════════════════════════════════════════
-//  PERSISTENT STORAGE
-//  Данные живут в /tmp (RAM-диск Render) + резервируются
-//  в env-переменную ITD_DATA через self-ping каждые 10 мин
-// ═══════════════════════════════════════════════════════
-
+// ═══════════════════════════════════════
+//  DB
+// ═══════════════════════════════════════
 const EMPTY_DB = { users: [], posts: [], messages: [] };
 
 function loadDB() {
-  // 1. Сначала пробуем /tmp файл
   try {
     if (fs.existsSync(STORAGE_FILE)) {
       const raw = fs.readFileSync(STORAGE_FILE, 'utf-8');
       const db  = JSON.parse(raw);
       if (db && db.users) {
-        console.log(`✅ DB loaded from /tmp: ${db.users.length} users, ${db.posts.length} posts`);
+        console.log(`✅ DB from /tmp: ${db.users.length} users, ${db.posts.length} posts`);
         return db;
       }
     }
-  } catch (e) {
-    console.error('tmp read error:', e.message);
-  }
+  } catch (e) { console.error('tmp read:', e.message); }
 
-  // 2. Пробуем env-переменную ITD_DATA
   try {
     if (process.env.ITD_DATA) {
       const raw = Buffer.from(process.env.ITD_DATA, 'base64').toString('utf-8');
       const db  = JSON.parse(raw);
       if (db && db.users) {
-        console.log(`✅ DB loaded from ENV: ${db.users.length} users, ${db.posts.length} posts`);
-        saveDBToFile(db);
+        console.log(`✅ DB from ENV: ${db.users.length} users`);
+        saveFile(db);
         return db;
       }
     }
-  } catch (e) {
-    console.error('env read error:', e.message);
-  }
+  } catch (e) { console.error('env read:', e.message); }
 
-  console.log('📭 Starting with empty DB');
+  console.log('📭 Empty DB');
   return JSON.parse(JSON.stringify(EMPTY_DB));
 }
 
-function saveDBToFile(db) {
-  try {
-    fs.writeFileSync(STORAGE_FILE, JSON.stringify(db), 'utf-8');
-  } catch (e) {
-    console.error('save error:', e.message);
-  }
+function saveFile(db) {
+  try { fs.writeFileSync(STORAGE_FILE, JSON.stringify(db), 'utf-8'); }
+  catch (e) { console.error('save:', e.message); }
 }
 
-// Глобальная БД
 let DB = loadDB();
+function persist() { saveFile(DB); }
 
-// Сохраняем после каждого изменения
-function persist() {
-  saveDBToFile(DB);
-}
-
-// Self-ping каждые 14 минут чтобы не засыпал (Render free)
+// Self-ping каждые 14 мин
 function selfPing() {
   const url = process.env.RENDER_EXTERNAL_URL;
   if (!url) return;
   try {
-    https.get(url + '/api/ping', res => {
-      console.log(`🏓 Self-ping: ${res.statusCode}`);
-    }).on('error', () => {});
+    https.get(url + '/api/ping', r => console.log(`🏓 ping: ${r.statusCode}`))
+         .on('error', () => {});
   } catch (_) {}
 }
-
 setInterval(selfPing, 14 * 60 * 1000);
-
 app.get('/api/ping', (_, res) => res.json({ ok: true, ts: Date.now() }));
 
-// ─── Auth middleware ──────────────────────────────────
+// ═══════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════
 function auth(req, res, next) {
   const token = (req.headers.authorization || '').replace('Bearer ', '');
   if (!token) return res.status(401).json({ success: false, message: 'Нет токена' });
-  try {
-    req.user = jwt.verify(token, JWT_SECRET);
-    next();
-  } catch {
-    res.status(401).json({ success: false, message: 'Токен недействителен' });
-  }
+  try { req.user = jwt.verify(token, JWT_SECRET); next(); }
+  catch { res.status(401).json({ success: false, message: 'Токен недействителен' }); }
 }
 
-function safeUser(u) {
+function safe(u) {
   if (!u) return null;
-  const { password: _, ...safe } = u;
-  return safe;
+  const { password: _, ...rest } = u;
+  return rest;
 }
 
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════
 //  AUTH
-// ═══════════════════════════════════════════════════════
-
+// ═══════════════════════════════════════
 app.post('/api/auth/register', async (req, res) => {
   const { username, password, displayName, emoji, color, bio } = req.body;
-
-  if (!username || !password || !displayName || !emoji) {
+  if (!username || !password || !displayName || !emoji)
     return res.status(400).json({ success: false, message: 'Заполните все поля' });
-  }
 
   const clean = username.trim().toLowerCase();
-
-  if (clean.length < 3 || clean.length > 20) {
+  if (clean.length < 3 || clean.length > 20)
     return res.status(400).json({ success: false, message: 'Логин: 3–20 символов' });
-  }
-  if (!/^[a-z0-9_]+$/.test(clean)) {
+  if (!/^[a-z0-9_]+$/.test(clean))
     return res.status(400).json({ success: false, message: 'Логин: только a-z, 0-9, _' });
-  }
-  if (password.length < 6) {
+  if (password.length < 6)
     return res.status(400).json({ success: false, message: 'Пароль: минимум 6 символов' });
-  }
-  if (displayName.trim().length < 2) {
+  if (displayName.trim().length < 2)
     return res.status(400).json({ success: false, message: 'Имя слишком короткое' });
-  }
-  if (DB.users.find(u => u.username === clean)) {
+  if (DB.users.find(u => u.username === clean))
     return res.status(409).json({ success: false, message: 'Логин уже занят' });
-  }
 
   const hash = await bcrypt.hash(password, 10);
-  const newUser = {
-    id:          Date.now().toString(),
-    username:    clean,
-    password:    hash,
+  const user = {
+    id: Date.now().toString(),
+    username: clean,
+    password: hash,
     displayName: displayName.trim(),
     emoji,
-    color:       color || '#6C63FF',
-    bio:         bio?.trim() || '',
-    followers:   [],
-    following:   [],
-    createdAt:   new Date().toISOString(),
+    color: color || '#6C63FF',
+    bio: bio?.trim() || '',
+    followers: [],
+    following: [],
+    createdAt: new Date().toISOString(),
   };
-
-  DB.users.push(newUser);
+  DB.users.push(user);
   persist();
 
-  const token = jwt.sign({ id: newUser.id, username: newUser.username }, JWT_SECRET, { expiresIn: '90d' });
-  res.status(201).json({ success: true, data: { token, user: safeUser(newUser) } });
+  const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '90d' });
+  res.status(201).json({ success: true, data: { token, user: safe(user) } });
 });
 
 app.post('/api/auth/login', async (req, res) => {
   const { username, password } = req.body;
-  if (!username || !password) {
+  if (!username || !password)
     return res.status(400).json({ success: false, message: 'Введите логин и пароль' });
-  }
 
   const user = DB.users.find(u => u.username === username.trim().toLowerCase());
   if (!user) return res.status(401).json({ success: false, message: 'Неверный логин или пароль' });
@@ -172,43 +138,38 @@ app.post('/api/auth/login', async (req, res) => {
   if (!ok) return res.status(401).json({ success: false, message: 'Неверный логин или пароль' });
 
   const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '90d' });
-  res.json({ success: true, data: { token, user: safeUser(user) } });
+  res.json({ success: true, data: { token, user: safe(user) } });
 });
 
 app.get('/api/auth/me', auth, (req, res) => {
   const user = DB.users.find(u => u.id === req.user.id);
   if (!user) return res.status(404).json({ success: false, message: 'Не найден' });
-  res.json({ success: true, data: safeUser(user) });
+  res.json({ success: true, data: safe(user) });
 });
 
-// Update profile
 app.patch('/api/auth/me', auth, async (req, res) => {
   const user = DB.users.find(u => u.id === req.user.id);
   if (!user) return res.status(404).json({ success: false, message: 'Не найден' });
 
   const { displayName, bio, emoji, color, password, newPassword } = req.body;
-
   if (displayName !== undefined) user.displayName = displayName.trim().slice(0, 50) || user.displayName;
-  if (bio        !== undefined) user.bio         = bio.trim().slice(0, 200);
-  if (emoji      !== undefined) user.emoji       = emoji;
-  if (color      !== undefined) user.color       = color;
+  if (bio         !== undefined) user.bio         = bio.trim().slice(0, 200);
+  if (emoji       !== undefined) user.emoji       = emoji;
+  if (color       !== undefined) user.color       = color;
 
-  // Change password
   if (newPassword && password) {
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) return res.status(400).json({ success: false, message: 'Неверный текущий пароль' });
     if (newPassword.length < 6) return res.status(400).json({ success: false, message: 'Новый пароль: мин. 6 символов' });
     user.password = await bcrypt.hash(newPassword, 10);
   }
-
   persist();
-  res.json({ success: true, data: safeUser(user) });
+  res.json({ success: true, data: safe(user) });
 });
 
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════
 //  POSTS
-// ═══════════════════════════════════════════════════════
-
+// ═══════════════════════════════════════
 app.get('/api/posts', auth, (req, res) => {
   const { userId } = req.query;
   let list = [...DB.posts].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -216,9 +177,11 @@ app.get('/api/posts', auth, (req, res) => {
 
   const enriched = list.map(p => {
     const a = DB.users.find(u => u.id === p.authorId);
-    return { ...p, author: a ? { id: a.id, username: a.username, displayName: a.displayName, emoji: a.emoji, color: a.color } : null };
+    return {
+      ...p,
+      author: a ? { id: a.id, username: a.username, displayName: a.displayName, emoji: a.emoji, color: a.color } : null,
+    };
   });
-
   res.json({ success: true, data: enriched });
 });
 
@@ -229,19 +192,23 @@ app.post('/api/posts', auth, (req, res) => {
 
   const author = DB.users.find(u => u.id === req.user.id);
   const post = {
-    id:        Date.now().toString(),
-    authorId:  req.user.id,
-    content:   content.trim(),
-    likes:     [],
+    id: Date.now().toString(),
+    authorId: req.user.id,
+    content: content.trim(),
+    likes: [],
     createdAt: new Date().toISOString(),
   };
-
   DB.posts.unshift(post);
   persist();
 
   res.status(201).json({
     success: true,
-    data: { ...post, author: author ? { id: author.id, username: author.username, displayName: author.displayName, emoji: author.emoji, color: author.color } : null }
+    data: {
+      ...post,
+      author: author
+        ? { id: author.id, username: author.username, displayName: author.displayName, emoji: author.emoji, color: author.color }
+        : null,
+    },
   });
 });
 
@@ -253,8 +220,8 @@ app.patch('/api/posts/:id/like', auth, (req, res) => {
   const idx = post.likes.indexOf(uid);
   if (idx === -1) post.likes.push(uid);
   else post.likes.splice(idx, 1);
-
   persist();
+
   res.json({ success: true, data: { liked: idx === -1, likesCount: post.likes.length } });
 });
 
@@ -268,10 +235,9 @@ app.delete('/api/posts/:id', auth, (req, res) => {
   res.json({ success: true });
 });
 
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════
 //  USERS
-// ═══════════════════════════════════════════════════════
-
+// ═══════════════════════════════════════
 app.get('/api/users', auth, (req, res) => {
   const { q } = req.query;
   let list = DB.users.filter(u => u.id !== req.user.id);
@@ -282,43 +248,38 @@ app.get('/api/users', auth, (req, res) => {
       u.username.toLowerCase().includes(lq)
     );
   }
-  res.json({ success: true, data: list.map(safeUser) });
+  res.json({ success: true, data: list.map(safe) });
 });
 
 app.get('/api/users/:id', auth, (req, res) => {
   const user = DB.users.find(u => u.id === req.params.id || u.username === req.params.id);
   if (!user) return res.status(404).json({ success: false, message: 'Не найден' });
-  res.json({ success: true, data: safeUser(user) });
+  res.json({ success: true, data: safe(user) });
 });
 
 app.patch('/api/users/me/follow/:id', auth, (req, res) => {
   const me     = DB.users.find(u => u.id === req.user.id);
   const target = DB.users.find(u => u.id === req.params.id);
   if (!target) return res.status(404).json({ success: false, message: 'Не найден' });
-  if (me.id === target.id) return res.status(400).json({ success: false, message: 'Нельзя подписаться на себя' });
+  if (me.id === target.id) return res.status(400).json({ success: false, message: 'Нельзя на себя' });
 
   const already = me.following.includes(target.id);
   if (already) {
-    me.following     = me.following.filter(id => id !== target.id);
-    target.followers = target.followers.filter(id => id !== me.id);
+    me.following     = me.following.filter(i => i !== target.id);
+    target.followers = target.followers.filter(i => i !== me.id);
   } else {
     me.following.push(target.id);
     target.followers.push(me.id);
   }
-
   persist();
   res.json({ success: true, data: { following: !already, followersCount: target.followers.length } });
 });
 
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════
 //  MESSAGES
-// ═══════════════════════════════════════════════════════
-
-// GET /api/messages — список диалогов текущего юзера
+// ═══════════════════════════════════════
 app.get('/api/messages', auth, (req, res) => {
   const myId = req.user.id;
-
-  // Собираем уникальных собеседников
   const partnersSet = new Set();
   DB.messages.forEach(m => {
     if (m.from === myId) partnersSet.add(m.to);
@@ -329,81 +290,63 @@ app.get('/api/messages', auth, (req, res) => {
   partnersSet.forEach(pid => {
     const partner = DB.users.find(u => u.id === pid);
     if (!partner) return;
-
     const thread = DB.messages
       .filter(m => (m.from === myId && m.to === pid) || (m.from === pid && m.to === myId))
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-    const last    = thread[0];
-    const unread  = thread.filter(m => m.to === myId && !m.read).length;
-
-    dialogs.push({
-      partner:  safeUser(partner),
-      last,
-      unread,
-      updatedAt: last?.createdAt || '',
-    });
+    const last   = thread[0];
+    const unread = thread.filter(m => m.to === myId && !m.read).length;
+    dialogs.push({ partner: safe(partner), last, unread, updatedAt: last?.createdAt || '' });
   });
 
   dialogs.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
   res.json({ success: true, data: dialogs });
 });
 
-// GET /api/messages/:userId — переписка с конкретным юзером
 app.get('/api/messages/:userId', auth, (req, res) => {
   const myId  = req.user.id;
   const othId = req.params.userId;
-
   const thread = DB.messages
     .filter(m => (m.from === myId && m.to === othId) || (m.from === othId && m.to === myId))
     .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
-  // Mark as read
   let changed = false;
-  thread.forEach(m => {
-    if (m.to === myId && !m.read) { m.read = true; changed = true; }
-  });
+  thread.forEach(m => { if (m.to === myId && !m.read) { m.read = true; changed = true; } });
   if (changed) persist();
 
   res.json({ success: true, data: thread });
 });
 
-// POST /api/messages/:userId — отправить сообщение
 app.post('/api/messages/:userId', auth, (req, res) => {
   const { text } = req.body;
   if (!text?.trim()) return res.status(400).json({ success: false, message: 'Пустое сообщение' });
   if (text.length > 2000) return res.status(400).json({ success: false, message: 'Макс. 2000 символов' });
 
   const target = DB.users.find(u => u.id === req.params.userId);
-  if (!target) return res.status(404).json({ success: false, message: 'Пользователь не найден' });
-  if (target.id === req.user.id) return res.status(400).json({ success: false, message: 'Нельзя писать себе' });
+  if (!target) return res.status(404).json({ success: false, message: 'Не найден' });
+  if (target.id === req.user.id) return res.status(400).json({ success: false, message: 'Нельзя себе' });
 
   const msg = {
-    id:        Date.now().toString(),
-    from:      req.user.id,
-    to:        target.id,
-    text:      text.trim(),
-    read:      false,
+    id: Date.now().toString(),
+    from: req.user.id,
+    to: target.id,
+    text: text.trim(),
+    read: false,
     createdAt: new Date().toISOString(),
   };
-
   DB.messages.push(msg);
   persist();
   res.status(201).json({ success: true, data: msg });
 });
 
-// DELETE /api/messages/:msgId — удалить своё сообщение
 app.delete('/api/messages/msg/:msgId', auth, (req, res) => {
   const idx = DB.messages.findIndex(m => m.id === req.params.msgId);
   if (idx === -1) return res.status(404).json({ success: false, message: 'Не найдено' });
   if (DB.messages[idx].from !== req.user.id) return res.status(403).json({ success: false, message: 'Нет прав' });
-
   DB.messages.splice(idx, 1);
   persist();
   res.json({ success: true });
 });
 
-// Fallback
 app.get('*', (_, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 app.listen(PORT, () => console.log(`✅ http://localhost:${PORT}`));
