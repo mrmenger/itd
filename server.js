@@ -12,16 +12,11 @@ const app  = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET   = process.env.JWT_SECRET || 'itd_secret_2024';
 const STORAGE_FILE = path.join('/tmp', 'itd_data.json');
-const ADMIN_PASSWORD = '1qw23er4';
-const CREATOR_USERNAME = 'creator'; // ← ваш юзернейм
 
 app.use(cors());
 app.use(express.json({ limit: '2mb' }));
 app.use(express.static(path.join(__dirname)));
 
-// ═══════════════════════════════════════
-//  DB
-// ═══════════════════════════════════════
 const EMPTY_DB = { users: [], posts: [], messages: [] };
 
 function loadDB() {
@@ -29,25 +24,16 @@ function loadDB() {
     if (fs.existsSync(STORAGE_FILE)) {
       const raw = fs.readFileSync(STORAGE_FILE, 'utf-8');
       const db  = JSON.parse(raw);
-      if (db && db.users) {
-        console.log(`✅ DB from /tmp: ${db.users.length} users, ${db.posts.length} posts`);
-        return db;
-      }
+      if (db && db.users) { console.log(`✅ DB from /tmp`); return db; }
     }
   } catch (e) { console.error('tmp read:', e.message); }
-
   try {
     if (process.env.ITD_DATA) {
       const raw = Buffer.from(process.env.ITD_DATA, 'base64').toString('utf-8');
       const db  = JSON.parse(raw);
-      if (db && db.users) {
-        console.log(`✅ DB from ENV: ${db.users.length} users`);
-        saveFile(db);
-        return db;
-      }
+      if (db && db.users) { console.log(`✅ DB from ENV`); saveFile(db); return db; }
     }
   } catch (e) { console.error('env read:', e.message); }
-
   console.log('📭 Empty DB');
   return JSON.parse(JSON.stringify(EMPTY_DB));
 }
@@ -60,33 +46,20 @@ function saveFile(db) {
 let DB = loadDB();
 function persist() { saveFile(DB); }
 
-// Self-ping
 function selfPing() {
   const url = process.env.RENDER_EXTERNAL_URL;
   if (!url) return;
-  try {
-    https.get(url + '/api/ping', r => console.log(`🏓 ping: ${r.statusCode}`))
-         .on('error', () => {});
-  } catch (_) {}
+  try { https.get(url + '/api/ping', r => console.log(`🏓 ping: ${r.statusCode}`)).on('error', () => {}); }
+  catch (_) {}
 }
 setInterval(selfPing, 14 * 60 * 1000);
 app.get('/api/ping', (_, res) => res.json({ ok: true, ts: Date.now() }));
 
-// ═══════════════════════════════════════
-//  HELPERS
-// ═══════════════════════════════════════
 function auth(req, res, next) {
   const token = (req.headers.authorization || '').replace('Bearer ', '');
   if (!token) return res.status(401).json({ success: false, message: 'Нет токена' });
   try { req.user = jwt.verify(token, JWT_SECRET); next(); }
   catch { res.status(401).json({ success: false, message: 'Токен недействителен' }); }
-}
-
-function adminAuth(req, res, next) {
-  const adminToken = req.headers['x-admin-token'];
-  if (adminToken !== ADMIN_PASSWORD)
-    return res.status(403).json({ success: false, message: 'Нет доступа' });
-  next();
 }
 
 function safe(u) {
@@ -95,18 +68,11 @@ function safe(u) {
   return rest;
 }
 
-function isVerified(username) {
-  return username === CREATOR_USERNAME;
-}
-
-// ═══════════════════════════════════════
-//  AUTH
-// ═══════════════════════════════════════
+// AUTH
 app.post('/api/auth/register', async (req, res) => {
   const { username, password, displayName, emoji, color, bio } = req.body;
   if (!username || !password || !displayName || !emoji)
     return res.status(400).json({ success: false, message: 'Заполните все поля' });
-
   const clean = username.trim().toLowerCase();
   if (clean.length < 3 || clean.length > 20)
     return res.status(400).json({ success: false, message: 'Логин: 3–20 символов' });
@@ -118,25 +84,14 @@ app.post('/api/auth/register', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Имя слишком короткое' });
   if (DB.users.find(u => u.username === clean))
     return res.status(409).json({ success: false, message: 'Логин уже занят' });
-
   const hash = await bcrypt.hash(password, 10);
   const user = {
-    id: Date.now().toString(),
-    username: clean,
-    password: hash,
-    displayName: displayName.trim(),
-    emoji,
-    color: color || '#6C63FF',
-    bio: bio?.trim() || '',
-    followers: [],
-    following: [],
-    verified: isVerified(clean), // ← верификация
-    banned: false,
+    id: Date.now().toString(), username: clean, password: hash,
+    displayName: displayName.trim(), emoji, color: color || '#6C63FF',
+    bio: bio?.trim() || '', followers: [], following: [],
     createdAt: new Date().toISOString(),
   };
-  DB.users.push(user);
-  persist();
-
+  DB.users.push(user); persist();
   const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '90d' });
   res.status(201).json({ success: true, data: { token, user: safe(user) } });
 });
@@ -145,14 +100,10 @@ app.post('/api/auth/login', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password)
     return res.status(400).json({ success: false, message: 'Введите логин и пароль' });
-
   const user = DB.users.find(u => u.username === username.trim().toLowerCase());
   if (!user) return res.status(401).json({ success: false, message: 'Неверный логин или пароль' });
-  if (user.banned) return res.status(403).json({ success: false, message: 'Аккаунт заблокирован' });
-
   const ok = await bcrypt.compare(password, user.password);
   if (!ok) return res.status(401).json({ success: false, message: 'Неверный логин или пароль' });
-
   const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '90d' });
   res.json({ success: true, data: { token, user: safe(user) } });
 });
@@ -166,13 +117,11 @@ app.get('/api/auth/me', auth, (req, res) => {
 app.patch('/api/auth/me', auth, async (req, res) => {
   const user = DB.users.find(u => u.id === req.user.id);
   if (!user) return res.status(404).json({ success: false, message: 'Не найден' });
-
   const { displayName, bio, emoji, color, password, newPassword } = req.body;
   if (displayName !== undefined) user.displayName = displayName.trim().slice(0, 50) || user.displayName;
-  if (bio         !== undefined) user.bio         = bio.trim().slice(0, 200);
-  if (emoji       !== undefined) user.emoji       = emoji;
-  if (color       !== undefined) user.color       = color;
-
+  if (bio !== undefined) user.bio = bio.trim().slice(0, 200);
+  if (emoji !== undefined) user.emoji = emoji;
+  if (color !== undefined) user.color = color;
   if (newPassword && password) {
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) return res.status(400).json({ success: false, message: 'Неверный текущий пароль' });
@@ -183,178 +132,14 @@ app.patch('/api/auth/me', auth, async (req, res) => {
   res.json({ success: true, data: safe(user) });
 });
 
-// ═══════════════════════════════════════
-//  ADMIN API
-// ═══════════════════════════════════════
-
-// Проверка пароля админа
-app.post('/api/admin/auth', (req, res) => {
-  const { password } = req.body;
-  if (password !== ADMIN_PASSWORD)
-    return res.status(403).json({ success: false, message: 'Неверный пароль' });
-  res.json({ success: true, message: 'Добро пожаловать, Admin!' });
-});
-
-// Получить всю статистику
-app.get('/api/admin/stats', adminAuth, (req, res) => {
-  const totalUsers   = DB.users.length;
-  const totalPosts   = DB.posts.length;
-  const totalMsgs    = DB.messages.length;
-  const bannedUsers  = DB.users.filter(u => u.banned).length;
-  const verifiedUsers = DB.users.filter(u => u.verified).length;
-  const totalLikes   = DB.posts.reduce((s, p) => s + (p.likes?.length || 0), 0);
-
-  // Топ по лайкам
-  const topPosts = [...DB.posts]
-    .sort((a, b) => (b.likes?.length || 0) - (a.likes?.length || 0))
-    .slice(0, 5)
-    .map(p => {
-      const author = DB.users.find(u => u.id === p.authorId);
-      return {
-        ...p,
-        author: author ? { username: author.username, displayName: author.displayName, emoji: author.emoji, color: author.color } : null,
-      };
-    });
-
-  // Топ пользователей
-  const topUsers = [...DB.users]
-    .sort((a, b) => (b.followers?.length || 0) - (a.followers?.length || 0))
-    .slice(0, 5)
-    .map(safe);
-
-  // Эмодзи кланы статистика
-  const emojiStats = {};
-  DB.users.forEach(u => {
-    if (u.emoji) emojiStats[u.emoji] = (emojiStats[u.emoji] || 0) + 1;
-  });
-
-  res.json({
-    success: true,
-    data: {
-      totalUsers, totalPosts, totalMsgs,
-      bannedUsers, verifiedUsers, totalLikes,
-      topPosts, topUsers, emojiStats,
-    },
-  });
-});
-
-// Получить всех пользователей
-app.get('/api/admin/users', adminAuth, (req, res) => {
-  const users = DB.users.map(u => ({
-    ...safe(u),
-    postCount: DB.posts.filter(p => p.authorId === u.id).length,
-  }));
-  res.json({ success: true, data: users });
-});
-
-// Получить все посты
-app.get('/api/admin/posts', adminAuth, (req, res) => {
-  const posts = [...DB.posts]
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-    .map(p => {
-      const author = DB.users.find(u => u.id === p.authorId);
-      return {
-        ...p,
-        author: author ? { username: author.username, displayName: author.displayName, emoji: author.emoji, color: author.color } : null,
-      };
-    });
-  res.json({ success: true, data: posts });
-});
-
-// Удалить пост (админ)
-app.delete('/api/admin/posts/:id', adminAuth, (req, res) => {
-  const idx = DB.posts.findIndex(p => p.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ success: false, message: 'Не найден' });
-  DB.posts.splice(idx, 1);
-  persist();
-  res.json({ success: true });
-});
-
-// Забанить / разбанить пользователя
-app.patch('/api/admin/users/:id/ban', adminAuth, (req, res) => {
-  const user = DB.users.find(u => u.id === req.params.id);
-  if (!user) return res.status(404).json({ success: false, message: 'Не найден' });
-  user.banned = !user.banned;
-  persist();
-  res.json({ success: true, data: { banned: user.banned, username: user.username } });
-});
-
-// Верифицировать / снять верификацию
-app.patch('/api/admin/users/:id/verify', adminAuth, (req, res) => {
-  const user = DB.users.find(u => u.id === req.params.id);
-  if (!user) return res.status(404).json({ success: false, message: 'Не найден' });
-  user.verified = !user.verified;
-  persist();
-  res.json({ success: true, data: { verified: user.verified, username: user.username } });
-});
-
-// Удалить пользователя полностью
-app.delete('/api/admin/users/:id', adminAuth, (req, res) => {
-  const idx = DB.users.findIndex(u => u.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ success: false, message: 'Не найден' });
-  const userId = DB.users[idx].id;
-  DB.users.splice(idx, 1);
-  // Удаляем посты и сообщения пользователя
-  DB.posts    = DB.posts.filter(p => p.authorId !== userId);
-  DB.messages = DB.messages.filter(m => m.from !== userId && m.to !== userId);
-  persist();
-  res.json({ success: true });
-});
-
-// Очистить все сообщения
-app.delete('/api/admin/messages', adminAuth, (req, res) => {
-  DB.messages = [];
-  persist();
-  res.json({ success: true });
-});
-
-// Получить эмодзи кланы
-app.get('/api/admin/emoji-clans', adminAuth, (req, res) => {
-  const clans = {};
-  DB.users.forEach(u => {
-    if (!u.emoji) return;
-    if (!clans[u.emoji]) clans[u.emoji] = { emoji: u.emoji, count: 0, members: [] };
-    clans[u.emoji].count++;
-    clans[u.emoji].members.push({ username: u.username, displayName: u.displayName });
-  });
-  const sorted = Object.values(clans).sort((a, b) => b.count - a.count);
-  res.json({ success: true, data: sorted });
-});
-
-// ═══════════════════════════════════════
-//  EMOJI CLANS (публичный)
-// ═══════════════════════════════════════
-app.get('/api/emoji-clans', auth, (req, res) => {
-  const clans = {};
-  DB.users.forEach(u => {
-    if (!u.emoji) return;
-    if (!clans[u.emoji]) clans[u.emoji] = { emoji: u.emoji, count: 0 };
-    clans[u.emoji].count++;
-  });
-  res.json({ success: true, data: clans });
-});
-
-// ═══════════════════════════════════════
-//  POSTS
-// ═══════════════════════════════════════
+// POSTS
 app.get('/api/posts', auth, (req, res) => {
   const { userId } = req.query;
   let list = [...DB.posts].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   if (userId) list = list.filter(p => p.authorId === userId);
-
   const enriched = list.map(p => {
     const a = DB.users.find(u => u.id === p.authorId);
-    return {
-      ...p,
-      author: a ? {
-        id: a.id,
-        username: a.username,
-        displayName: a.displayName,
-        emoji: a.emoji,
-        color: a.color,
-        verified: a.verified || false,  // ← передаём верификацию
-      } : null,
-    };
+    return { ...p, author: a ? { id: a.id, username: a.username, displayName: a.displayName, emoji: a.emoji, color: a.color } : null };
   });
   res.json({ success: true, data: enriched });
 });
@@ -363,41 +148,17 @@ app.post('/api/posts', auth, (req, res) => {
   const { content } = req.body;
   if (!content?.trim()) return res.status(400).json({ success: false, message: 'Пустой пост' });
   if (content.length > 1000) return res.status(400).json({ success: false, message: 'Макс. 1000 символов' });
-
   const author = DB.users.find(u => u.id === req.user.id);
-  const post = {
-    id: Date.now().toString(),
-    authorId: req.user.id,
-    content: content.trim(),
-    likes: [],
-    createdAt: new Date().toISOString(),
-  };
-  DB.posts.unshift(post);
-  persist();
-
-  res.status(201).json({
-    success: true,
-    data: {
-      ...post,
-      author: author ? {
-        id: author.id,
-        username: author.username,
-        displayName: author.displayName,
-        emoji: author.emoji,
-        color: author.color,
-        verified: author.verified || false,
-      } : null,
-    },
-  });
+  const post = { id: Date.now().toString(), authorId: req.user.id, content: content.trim(), likes: [], createdAt: new Date().toISOString() };
+  DB.posts.unshift(post); persist();
+  res.status(201).json({ success: true, data: { ...post, author: author ? { id: author.id, username: author.username, displayName: author.displayName, emoji: author.emoji, color: author.color } : null } });
 });
 
 app.patch('/api/posts/:id/like', auth, (req, res) => {
   const post = DB.posts.find(p => p.id === req.params.id);
   if (!post) return res.status(404).json({ success: false, message: 'Не найден' });
-  const uid = req.user.id;
-  const idx = post.likes.indexOf(uid);
-  if (idx === -1) post.likes.push(uid);
-  else post.likes.splice(idx, 1);
+  const uid = req.user.id, idx = post.likes.indexOf(uid);
+  if (idx === -1) post.likes.push(uid); else post.likes.splice(idx, 1);
   persist();
   res.json({ success: true, data: { liked: idx === -1, likesCount: post.likes.length } });
 });
@@ -405,26 +166,16 @@ app.patch('/api/posts/:id/like', auth, (req, res) => {
 app.delete('/api/posts/:id', auth, (req, res) => {
   const idx = DB.posts.findIndex(p => p.id === req.params.id);
   if (idx === -1) return res.status(404).json({ success: false, message: 'Не найден' });
-  if (DB.posts[idx].authorId !== req.user.id)
-    return res.status(403).json({ success: false, message: 'Нет прав' });
-  DB.posts.splice(idx, 1);
-  persist();
+  if (DB.posts[idx].authorId !== req.user.id) return res.status(403).json({ success: false, message: 'Нет прав' });
+  DB.posts.splice(idx, 1); persist();
   res.json({ success: true });
 });
 
-// ═══════════════════════════════════════
-//  USERS
-// ═══════════════════════════════════════
+// USERS
 app.get('/api/users', auth, (req, res) => {
   const { q } = req.query;
   let list = DB.users.filter(u => u.id !== req.user.id);
-  if (q) {
-    const lq = q.toLowerCase();
-    list = list.filter(u =>
-      u.displayName.toLowerCase().includes(lq) ||
-      u.username.toLowerCase().includes(lq)
-    );
-  }
+  if (q) { const lq = q.toLowerCase(); list = list.filter(u => u.displayName.toLowerCase().includes(lq) || u.username.toLowerCase().includes(lq)); }
   res.json({ success: true, data: list.map(safe) });
 });
 
@@ -435,42 +186,28 @@ app.get('/api/users/:id', auth, (req, res) => {
 });
 
 app.patch('/api/users/me/follow/:id', auth, (req, res) => {
-  const me     = DB.users.find(u => u.id === req.user.id);
+  const me = DB.users.find(u => u.id === req.user.id);
   const target = DB.users.find(u => u.id === req.params.id);
   if (!target) return res.status(404).json({ success: false, message: 'Не найден' });
-  if (me.id === target.id)
-    return res.status(400).json({ success: false, message: 'Нельзя на себя' });
+  if (me.id === target.id) return res.status(400).json({ success: false, message: 'Нельзя на себя' });
   const already = me.following.includes(target.id);
-  if (already) {
-    me.following     = me.following.filter(i => i !== target.id);
-    target.followers = target.followers.filter(i => i !== me.id);
-  } else {
-    me.following.push(target.id);
-    target.followers.push(me.id);
-  }
+  if (already) { me.following = me.following.filter(i => i !== target.id); target.followers = target.followers.filter(i => i !== me.id); }
+  else { me.following.push(target.id); target.followers.push(me.id); }
   persist();
   res.json({ success: true, data: { following: !already, followersCount: target.followers.length } });
 });
 
-// ═══════════════════════════════════════
-//  MESSAGES
-// ═══════════════════════════════════════
+// MESSAGES
 app.get('/api/messages', auth, (req, res) => {
   const myId = req.user.id;
   const partnersSet = new Set();
-  DB.messages.forEach(m => {
-    if (m.from === myId) partnersSet.add(m.to);
-    if (m.to   === myId) partnersSet.add(m.from);
-  });
+  DB.messages.forEach(m => { if (m.from === myId) partnersSet.add(m.to); if (m.to === myId) partnersSet.add(m.from); });
   const dialogs = [];
   partnersSet.forEach(pid => {
     const partner = DB.users.find(u => u.id === pid);
     if (!partner) return;
-    const thread = DB.messages
-      .filter(m => (m.from === myId && m.to === pid) || (m.from === pid && m.to === myId))
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    const last   = thread[0];
-    const unread = thread.filter(m => m.to === myId && !m.read).length;
+    const thread = DB.messages.filter(m => (m.from === myId && m.to === pid) || (m.from === pid && m.to === myId)).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const last = thread[0], unread = thread.filter(m => m.to === myId && !m.read).length;
     dialogs.push({ partner: safe(partner), last, unread, updatedAt: last?.createdAt || '' });
   });
   dialogs.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
@@ -478,11 +215,8 @@ app.get('/api/messages', auth, (req, res) => {
 });
 
 app.get('/api/messages/:userId', auth, (req, res) => {
-  const myId  = req.user.id;
-  const othId = req.params.userId;
-  const thread = DB.messages
-    .filter(m => (m.from === myId && m.to === othId) || (m.from === othId && m.to === myId))
-    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  const myId = req.user.id, othId = req.params.userId;
+  const thread = DB.messages.filter(m => (m.from === myId && m.to === othId) || (m.from === othId && m.to === myId)).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
   let changed = false;
   thread.forEach(m => { if (m.to === myId && !m.read) { m.read = true; changed = true; } });
   if (changed) persist();
@@ -495,28 +229,17 @@ app.post('/api/messages/:userId', auth, (req, res) => {
   if (text.length > 2000) return res.status(400).json({ success: false, message: 'Макс. 2000 символов' });
   const target = DB.users.find(u => u.id === req.params.userId);
   if (!target) return res.status(404).json({ success: false, message: 'Не найден' });
-  if (target.id === req.user.id)
-    return res.status(400).json({ success: false, message: 'Нельзя себе' });
-  const msg = {
-    id: Date.now().toString(),
-    from: req.user.id,
-    to: target.id,
-    text: text.trim(),
-    read: false,
-    createdAt: new Date().toISOString(),
-  };
-  DB.messages.push(msg);
-  persist();
+  if (target.id === req.user.id) return res.status(400).json({ success: false, message: 'Нельзя себе' });
+  const msg = { id: Date.now().toString(), from: req.user.id, to: target.id, text: text.trim(), read: false, createdAt: new Date().toISOString() };
+  DB.messages.push(msg); persist();
   res.status(201).json({ success: true, data: msg });
 });
 
 app.delete('/api/messages/msg/:msgId', auth, (req, res) => {
   const idx = DB.messages.findIndex(m => m.id === req.params.msgId);
   if (idx === -1) return res.status(404).json({ success: false, message: 'Не найдено' });
-  if (DB.messages[idx].from !== req.user.id)
-    return res.status(403).json({ success: false, message: 'Нет прав' });
-  DB.messages.splice(idx, 1);
-  persist();
+  if (DB.messages[idx].from !== req.user.id) return res.status(403).json({ success: false, message: 'Нет прав' });
+  DB.messages.splice(idx, 1); persist();
   res.json({ success: true });
 });
 
