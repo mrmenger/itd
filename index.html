@@ -7,28 +7,26 @@
   <link rel="stylesheet" href="style.css"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
 </head>
 <body>
 
-<!-- CANVAS BG -->
+<!-- ANIMATED BG -->
 <canvas id="bgCanvas"></canvas>
 
 <!-- AUTH -->
 <div class="auth-screen" id="authScreen">
   <div class="auth-brand">
-    <div class="auth-brand__logo">итд<span class="dot">.</span></div>
+    <span class="auth-brand__logo">итд<span class="dot">.</span></span>
     <p class="auth-brand__sub">Место для мыслей</p>
   </div>
-
-  <!-- LOGIN -->
   <div class="auth-panel" id="loginPanel">
     <h2 class="auth-panel__title">Добро пожаловать</h2>
     <p class="auth-panel__sub">Войдите в аккаунт</p>
     <form class="auth-form" id="loginForm" novalidate>
       <div class="field">
         <label class="field__label">Логин</label>
-        <input class="field__input" id="lUser" type="text" placeholder="your_login" autocomplete="username"/>
+        <input class="field__input" id="lUser" type="text" placeholder="login" autocomplete="username"/>
         <span class="field__err" id="lUserErr"></span>
       </div>
       <div class="field">
@@ -41,14 +39,11 @@
       </div>
       <div class="auth-err" id="loginErr"></div>
       <button type="submit" class="btn btn--primary btn--full" id="loginBtn">
-        <span id="loginBtnTxt">Войти</span>
-        <span class="spinner hidden" id="loginSpin"></span>
+        <span id="loginBtnTxt">Войти</span><span class="spinner hidden" id="loginSpin"></span>
       </button>
     </form>
     <p class="auth-switch">Нет аккаунта? <button class="auth-switch__btn" id="toReg">Зарегистрироваться</button></p>
   </div>
-
-  <!-- REGISTER -->
   <div class="auth-panel hidden" id="regPanel">
     <h2 class="auth-panel__title">Создать аккаунт</h2>
     <p class="auth-panel__sub">Шаг <span id="stepNum">1</span> из 2</p>
@@ -68,7 +63,7 @@
     <div class="hidden" id="rStep2">
       <div class="reg-mini-preview">
         <div class="reg-mini-av" id="miniAv">😀</div>
-        <button type="button" class="reg-change" id="backStep">← Изменить аватар</button>
+        <button type="button" class="reg-change" id="backStep">Изменить аватар</button>
       </div>
       <form class="auth-form" id="regForm" novalidate>
         <div class="field">
@@ -101,8 +96,7 @@
         </div>
         <div class="auth-err" id="regErr"></div>
         <button type="submit" class="btn btn--primary btn--full" id="regBtn">
-          <span id="regBtnTxt">Создать аккаунт</span>
-          <span class="spinner hidden" id="regSpin"></span>
+          <span id="regBtnTxt">Создать аккаунт</span><span class="spinner hidden" id="regSpin"></span>
         </button>
       </form>
     </div>
@@ -110,10 +104,8 @@
   </div>
 </div>
 
-
 <!-- APP -->
 <div class="app-screen hidden" id="appScreen">
-
   <header class="header" id="header">
     <div class="header__inner container">
       <a href="#" class="logo" id="goHome">итд<span class="dot">.</span></a>
@@ -135,7 +127,7 @@
               <span class="umenu__handle" id="umenuHandle">—</span>
             </div>
             <div class="umenu__div"></div>
-            <button class="umenu__item" data-page="profile-me">👤 Профиль</button>
+            <button class="umenu__item" data-page="profile-me">👤 Мой профиль</button>
             <button class="umenu__item" data-page="settings">⚙️ Настройки</button>
             <button class="umenu__item" id="logoutBtn">🚪 Выйти</button>
           </div>
@@ -203,8 +195,7 @@
           <div id="postsList"></div>
           <div class="empty-state hidden" id="feedEmpty">
             <div class="es-icon">✍️</div>
-            <h3>Пока пусто</h3>
-            <p>Станьте первым!</p>
+            <h3>Пока пусто</h3><p>Станьте первым!</p>
             <button class="btn btn--primary" id="emptyPostBtn">Написать</button>
           </div>
         </section>
@@ -216,9 +207,7 @@
             <input class="search-input" id="peopleSearch" type="text" placeholder="🔍 Поиск..."/>
           </div>
           <div id="peopleList"></div>
-          <div class="empty-state hidden" id="peopleEmpty">
-            <div class="es-icon">👥</div><h3>Никого нет</h3>
-          </div>
+          <div class="empty-state hidden" id="peopleEmpty"><div class="es-icon">👥</div><h3>Никого нет</h3></div>
         </section>
 
         <!-- MESSAGES -->
@@ -228,9 +217,7 @@
               <div class="page-head"><h2>Сообщения</h2></div>
               <div id="dialogsList"></div>
               <div class="empty-state hidden" id="dialogsEmpty">
-                <div class="es-icon">💬</div>
-                <h3>Нет диалогов</h3>
-                <p>Напишите кому-нибудь!</p>
+                <div class="es-icon">💬</div><h3>Нет диалогов</h3><p>Напишите кому-нибудь!</p>
                 <button class="btn btn--primary" id="goToPeopleBtn">Найти людей</button>
               </div>
             </div>
@@ -271,22 +258,21 @@
             </div>
             <div class="profile-hero__actions" id="profileActions"></div>
           </div>
-          <div class="card hidden" id="editProfileCard">
-            <h3 class="card__title">Редактировать профиль</h3>
+          <div class="edit-card hidden" id="editProfileCard">
+            <h3 class="edit-card__title">Редактировать профиль</h3>
             <div class="edit-form">
               <div class="field"><label class="field__label">Имя</label><input class="field__input" id="editName" type="text" maxlength="50"/></div>
               <div class="field"><label class="field__label">О себе</label><input class="field__input" id="editBio" type="text" maxlength="200" placeholder="Пару слов о себе..."/></div>
-              <div class="field"><label class="field__label">Аватар</label><div class="emoji-grid emoji-grid--sm" id="editEmojiGrid"></div></div>
-              <div class="field"><label class="field__label">Цвет</label><div class="color-row__swatches" id="editColorSwatches"></div></div>
-              <div class="edit-form__divider">Сменить пароль <span class="optional">(необязательно)</span></div>
+              <div class="field"><label class="field__label">Эмодзи</label><div class="emoji-grid emoji-grid--sm" id="editEmojiGrid"></div></div>
+              <div class="field"><label class="field__label">Цвет фона</label><div class="color-row__swatches" id="editColorSwatches"></div></div>
+              <div class="edit-divider">Сменить пароль <span class="optional">(необязательно)</span></div>
               <div class="field"><label class="field__label">Текущий пароль</label><input class="field__input" id="editCurPass" type="password" placeholder="••••••"/></div>
               <div class="field"><label class="field__label">Новый пароль</label><input class="field__input" id="editNewPass" type="password" placeholder="••••••"/></div>
               <div class="auth-err" id="editErr"></div>
-              <div class="edit-form__actions">
+              <div class="edit-actions">
                 <button class="btn btn--ghost" id="cancelEditBtn">Отмена</button>
                 <button class="btn btn--primary" id="saveEditBtn">
-                  <span id="saveEditTxt">Сохранить</span>
-                  <span class="spinner hidden" id="saveSpin"></span>
+                  <span id="saveEditTxt">Сохранить</span><span class="spinner hidden" id="saveSpin"></span>
                 </button>
               </div>
             </div>
@@ -302,40 +288,31 @@
             <p>Персонализация и параметры</p>
           </div>
 
-          <div class="card">
-            <div class="card__head">
-              <span class="card__icon">🎨</span>
-              <div><div class="card__title">Тема оформления</div><div class="card__sub">Выберите тему интерфейса</div></div>
+          <div class="settings-card">
+            <div class="settings-card__head">
+              <span class="s-icon">🎨</span>
+              <div><div class="s-title">Тема оформления</div><div class="s-sub">Выберите тему интерфейса</div></div>
             </div>
-            <div class="theme-grid">
-              <button class="theme-opt active" data-theme="light">
-                <div class="theme-opt__preview theme-opt__preview--light">
-                  <div class="theme-opt__dot"></div>
-                  <div class="theme-opt__lines"><div></div><div></div></div>
-                </div>
+            <div class="theme-switcher">
+              <button class="theme-btn" data-theme="light">
+                <div class="theme-preview theme-preview--light"></div>
                 <span>Светлая</span>
               </button>
-              <button class="theme-opt" data-theme="dark">
-                <div class="theme-opt__preview theme-opt__preview--dark">
-                  <div class="theme-opt__dot"></div>
-                  <div class="theme-opt__lines"><div></div><div></div></div>
-                </div>
+              <button class="theme-btn" data-theme="dark">
+                <div class="theme-preview theme-preview--dark"></div>
                 <span>Тёмная</span>
               </button>
-              <button class="theme-opt" data-theme="purple">
-                <div class="theme-opt__preview theme-opt__preview--purple">
-                  <div class="theme-opt__dot"></div>
-                  <div class="theme-opt__lines"><div></div><div></div></div>
-                </div>
+              <button class="theme-btn" data-theme="purple">
+                <div class="theme-preview theme-preview--purple"></div>
                 <span>Фиолет</span>
               </button>
             </div>
           </div>
 
-          <div class="card">
-            <div class="card__head">
-              <span class="card__icon">✨</span>
-              <div><div class="card__title">Анимированный фон</div><div class="card__sub">Переливающиеся пузыри</div></div>
+          <div class="settings-card">
+            <div class="settings-card__head">
+              <span class="s-icon">✨</span>
+              <div><div class="s-title">Анимированный фон</div><div class="s-sub">Переливающиеся пузыри</div></div>
               <label class="toggle" style="margin-left:auto">
                 <input type="checkbox" id="bgToggle" checked/>
                 <span class="toggle__track"><span class="toggle__thumb"></span></span>
@@ -343,43 +320,45 @@
             </div>
           </div>
 
-          <div class="card">
-            <div class="card__head">
-              <span class="card__icon">🎯</span>
-              <div><div class="card__title">Акцентный цвет</div><div class="card__sub">Цвет кнопок и элементов</div></div>
+          <div class="settings-card">
+            <div class="settings-card__head">
+              <span class="s-icon">🎯</span>
+              <div><div class="s-title">Акцентный цвет</div><div class="s-sub">Цвет кнопок и элементов</div></div>
             </div>
-            <div class="accent-row" id="accentColors">
-              <button class="accent-dot active" data-accent="#6C63FF" style="--c:#6C63FF"></button>
-              <button class="accent-dot" data-accent="#FF6584" style="--c:#FF6584"></button>
-              <button class="accent-dot" data-accent="#43B89C" style="--c:#43B89C"></button>
-              <button class="accent-dot" data-accent="#F7B731" style="--c:#F7B731"></button>
-              <button class="accent-dot" data-accent="#FC5C65" style="--c:#FC5C65"></button>
-              <button class="accent-dot" data-accent="#45AAF2" style="--c:#45AAF2"></button>
-              <button class="accent-dot" data-accent="#A29BFE" style="--c:#A29BFE"></button>
-              <button class="accent-dot" data-accent="#00B894" style="--c:#00B894"></button>
-              <button class="accent-dot" data-accent="#E84393" style="--c:#E84393"></button>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card__head">
-              <span class="card__icon">🔤</span>
-              <div><div class="card__title">Размер интерфейса</div><div class="card__sub">Масштаб текста и элементов</div></div>
-            </div>
-            <div class="size-row" id="sizeRow">
-              <button class="size-opt" data-size="14">S</button>
-              <button class="size-opt active" data-size="16">M</button>
-              <button class="size-opt" data-size="18">L</button>
-              <button class="size-opt" data-size="20">XL</button>
+            <div class="accent-grid" id="accentGrid">
+              <button class="accent-btn" data-accent="#6C63FF" style="background:#6C63FF"></button>
+              <button class="accent-btn" data-accent="#FF6584" style="background:#FF6584"></button>
+              <button class="accent-btn" data-accent="#43B89C" style="background:#43B89C"></button>
+              <button class="accent-btn" data-accent="#F7B731" style="background:#F7B731"></button>
+              <button class="accent-btn" data-accent="#FC5C65" style="background:#FC5C65"></button>
+              <button class="accent-btn" data-accent="#45AAF2" style="background:#45AAF2"></button>
+              <button class="accent-btn" data-accent="#A29BFE" style="background:#A29BFE"></button>
+              <button class="accent-btn" data-accent="#00B894" style="background:#00B894"></button>
+              <button class="accent-btn" data-accent="#E84393" style="background:#E84393"></button>
+              <button class="accent-btn" data-accent="#FF7675" style="background:#FF7675"></button>
             </div>
           </div>
 
-          <div class="card">
-            <div class="card__head">
-              <span class="card__icon">👤</span>
-              <div><div class="card__title">Аккаунт</div><div class="card__sub">Управление профилем</div></div>
+          <div class="settings-card">
+            <div class="settings-card__head">
+              <span class="s-icon">🔤</span>
+              <div><div class="s-title">Размер интерфейса</div><div class="s-sub">Масштаб всех элементов</div></div>
             </div>
-            <div class="settings-actions">
+            <div class="size-row">
+              <button class="size-btn" data-size="14">S</button>
+              <button class="size-btn size-btn--active" data-size="16">M</button>
+              <button class="size-btn" data-size="18">L</button>
+              <button class="size-btn" data-size="20">XL</button>
+            </div>
+            <div class="size-preview" id="sizePreview">Размер текста — M (16px)</div>
+          </div>
+
+          <div class="settings-card">
+            <div class="settings-card__head">
+              <span class="s-icon">👤</span>
+              <div><div class="s-title">Аккаунт</div><div class="s-sub">Управление профилем</div></div>
+            </div>
+            <div class="settings-btns">
               <button class="btn btn--outline" id="settingsEditProfile">✏️ Редактировать профиль</button>
               <button class="btn btn--danger" id="settingsLogout">🚪 Выйти</button>
             </div>
@@ -402,7 +381,7 @@
   </main>
 
   <!-- BOTTOM NAV -->
-  <nav class="bottom-nav">
+  <nav class="bottom-nav" id="bottomNav">
     <button class="bottom-nav__item bottom-nav__item--active" data-page="feed">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       <span>Лента</span>
@@ -411,7 +390,7 @@
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
       <span>Люди</span>
     </button>
-    <button class="bottom-nav__fab" id="fabPostBtn">
+    <button class="bottom-nav__item bottom-nav__fab" id="fabPostBtn">
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     </button>
     <button class="bottom-nav__item" data-page="messages">
@@ -423,8 +402,7 @@
       <span>Настр.</span>
     </button>
   </nav>
-
-</div><!-- /appScreen -->
+</div>
 
 <!-- POST MODAL -->
 <div class="modal-overlay hidden" id="postModal">
@@ -452,8 +430,7 @@
       <div class="modal__actions">
         <button class="btn btn--ghost" id="cancelPost">Отмена</button>
         <button class="btn btn--primary" id="publishBtn" disabled>
-          <span id="publishTxt">Опубликовать</span>
-          <span class="spinner hidden" id="publishSpin"></span>
+          <span id="publishTxt">Опубликовать</span><span class="spinner hidden" id="publishSpin"></span>
         </button>
       </div>
     </div>
