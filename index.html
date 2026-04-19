@@ -17,9 +17,10 @@
 <!-- AUTH -->
 <div class="auth-screen" id="authScreen">
   <div class="auth-brand">
-    <span class="auth-brand__logo">итд<span class="dot">.</span></span>
+    <div class="auth-brand__logo">итд<span class="dot">.</span></div>
     <p class="auth-brand__sub">Место для мыслей</p>
   </div>
+
   <div class="auth-panel" id="loginPanel">
     <h2 class="auth-panel__title">Добро пожаловать</h2>
     <p class="auth-panel__sub">Войдите в аккаунт</p>
@@ -44,6 +45,7 @@
     </form>
     <p class="auth-switch">Нет аккаунта? <button class="auth-switch__btn" id="toReg">Зарегистрироваться</button></p>
   </div>
+
   <div class="auth-panel hidden" id="regPanel">
     <h2 class="auth-panel__title">Создать аккаунт</h2>
     <p class="auth-panel__sub">Шаг <span id="stepNum">1</span> из 2</p>
@@ -56,7 +58,7 @@
       </div>
       <div class="color-row">
         <span class="color-row__lbl">Фон:</span>
-        <div class="color-row__swatches" id="colorSwatches"></div>
+        <div id="colorSwatches"></div>
       </div>
       <button type="button" class="btn btn--primary btn--full mt" id="step1Btn">Далее →</button>
     </div>
@@ -104,8 +106,10 @@
   </div>
 </div>
 
+
 <!-- APP -->
 <div class="app-screen hidden" id="appScreen">
+
   <header class="header" id="header">
     <div class="header__inner container">
       <a href="#" class="logo" id="goHome">итд<span class="dot">.</span></a>
@@ -127,7 +131,7 @@
               <span class="umenu__handle" id="umenuHandle">—</span>
             </div>
             <div class="umenu__div"></div>
-            <button class="umenu__item" data-page="profile-me">👤 Мой профиль</button>
+            <button class="umenu__item" data-page="profile-me">👤 Профиль</button>
             <button class="umenu__item" data-page="settings">⚙️ Настройки</button>
             <button class="umenu__item" id="logoutBtn">🚪 Выйти</button>
           </div>
@@ -194,18 +198,14 @@
           </div>
           <div id="postsList"></div>
           <div class="empty-state hidden" id="feedEmpty">
-            <div class="es-icon">✍️</div>
-            <h3>Пока пусто</h3><p>Станьте первым!</p>
+            <div class="es-icon">✍️</div><h3>Пока пусто</h3><p>Станьте первым!</p>
             <button class="btn btn--primary" id="emptyPostBtn">Написать</button>
           </div>
         </section>
 
         <!-- PEOPLE -->
         <section class="page hidden" id="peoplePage">
-          <div class="page-head">
-            <h2>Люди</h2>
-            <input class="search-input" id="peopleSearch" type="text" placeholder="🔍 Поиск..."/>
-          </div>
+          <div class="page-head"><h2>Люди</h2><input class="search-input" id="peopleSearch" type="text" placeholder="🔍 Поиск..."/></div>
           <div id="peopleList"></div>
           <div class="empty-state hidden" id="peopleEmpty"><div class="es-icon">👥</div><h3>Никого нет</h3></div>
         </section>
@@ -258,22 +258,20 @@
             </div>
             <div class="profile-hero__actions" id="profileActions"></div>
           </div>
-          <div class="edit-card hidden" id="editProfileCard">
-            <h3 class="edit-card__title">Редактировать профиль</h3>
+          <div class="card hidden" id="editProfileCard">
+            <h3 class="card__title">Редактировать профиль</h3>
             <div class="edit-form">
               <div class="field"><label class="field__label">Имя</label><input class="field__input" id="editName" type="text" maxlength="50"/></div>
               <div class="field"><label class="field__label">О себе</label><input class="field__input" id="editBio" type="text" maxlength="200" placeholder="Пару слов о себе..."/></div>
-              <div class="field"><label class="field__label">Эмодзи</label><div class="emoji-grid emoji-grid--sm" id="editEmojiGrid"></div></div>
-              <div class="field"><label class="field__label">Цвет фона</label><div class="color-row__swatches" id="editColorSwatches"></div></div>
-              <div class="edit-divider">Сменить пароль <span class="optional">(необязательно)</span></div>
+              <div class="field"><label class="field__label">Эмодзи аватара</label><div class="emoji-grid emoji-grid--sm" id="editEmojiGrid"></div></div>
+              <div class="field"><label class="field__label">Цвет фона</label><div id="editColorSwatches" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"></div></div>
+              <div class="edit-form__divider">Сменить пароль <span class="optional">(необязательно)</span></div>
               <div class="field"><label class="field__label">Текущий пароль</label><input class="field__input" id="editCurPass" type="password" placeholder="••••••"/></div>
               <div class="field"><label class="field__label">Новый пароль</label><input class="field__input" id="editNewPass" type="password" placeholder="••••••"/></div>
               <div class="auth-err" id="editErr"></div>
-              <div class="edit-actions">
+              <div class="edit-form__actions">
                 <button class="btn btn--ghost" id="cancelEditBtn">Отмена</button>
-                <button class="btn btn--primary" id="saveEditBtn">
-                  <span id="saveEditTxt">Сохранить</span><span class="spinner hidden" id="saveSpin"></span>
-                </button>
+                <button class="btn btn--primary" id="saveEditBtn"><span id="saveEditTxt">Сохранить</span><span class="spinner hidden" id="saveSpin"></span></button>
               </div>
             </div>
           </div>
@@ -288,44 +286,29 @@
             <p>Персонализация и параметры</p>
           </div>
 
-          <div class="settings-card">
-            <div class="settings-card__head">
-              <span class="s-icon">🎨</span>
-              <div><div class="s-title">Тема оформления</div><div class="s-sub">Выберите тему интерфейса</div></div>
-            </div>
+          <div class="card">
+            <div class="settings-row"><span class="settings-row__icon">🎨</span><div><div class="settings-row__title">Тема оформления</div><div class="settings-row__sub">Выберите светлую или тёмную</div></div></div>
             <div class="theme-switcher">
-              <button class="theme-btn" data-theme="light">
-                <div class="theme-preview theme-preview--light"></div>
-                <span>Светлая</span>
-              </button>
-              <button class="theme-btn" data-theme="dark">
-                <div class="theme-preview theme-preview--dark"></div>
-                <span>Тёмная</span>
-              </button>
-              <button class="theme-btn" data-theme="purple">
-                <div class="theme-preview theme-preview--purple"></div>
-                <span>Фиолет</span>
-              </button>
+              <button class="theme-btn" data-theme="light"><div class="theme-preview theme-preview--light"></div><span>Светлая</span></button>
+              <button class="theme-btn" data-theme="dark"><div class="theme-preview theme-preview--dark"></div><span>Тёмная</span></button>
+              <button class="theme-btn" data-theme="purple"><div class="theme-preview theme-preview--purple"></div><span>Фиолет</span></button>
             </div>
           </div>
 
-          <div class="settings-card">
-            <div class="settings-card__head">
-              <span class="s-icon">✨</span>
-              <div><div class="s-title">Анимированный фон</div><div class="s-sub">Переливающиеся пузыри</div></div>
+          <div class="card">
+            <div class="settings-row">
+              <span class="settings-row__icon">✨</span>
+              <div><div class="settings-row__title">Анимированный фон</div><div class="settings-row__sub">Переливающиеся пузыри</div></div>
               <label class="toggle" style="margin-left:auto">
                 <input type="checkbox" id="bgToggle" checked/>
-                <span class="toggle__track"><span class="toggle__thumb"></span></span>
+                <span class="toggle__slider"></span>
               </label>
             </div>
           </div>
 
-          <div class="settings-card">
-            <div class="settings-card__head">
-              <span class="s-icon">🎯</span>
-              <div><div class="s-title">Акцентный цвет</div><div class="s-sub">Цвет кнопок и элементов</div></div>
-            </div>
-            <div class="accent-grid" id="accentGrid">
+          <div class="card">
+            <div class="settings-row"><span class="settings-row__icon">🎯</span><div><div class="settings-row__title">Акцентный цвет</div><div class="settings-row__sub">Цвет кнопок и ссылок</div></div></div>
+            <div class="accent-grid" id="accentColors">
               <button class="accent-btn" data-accent="#6C63FF" style="background:#6C63FF"></button>
               <button class="accent-btn" data-accent="#FF6584" style="background:#FF6584"></button>
               <button class="accent-btn" data-accent="#43B89C" style="background:#43B89C"></button>
@@ -334,31 +317,22 @@
               <button class="accent-btn" data-accent="#45AAF2" style="background:#45AAF2"></button>
               <button class="accent-btn" data-accent="#A29BFE" style="background:#A29BFE"></button>
               <button class="accent-btn" data-accent="#00B894" style="background:#00B894"></button>
-              <button class="accent-btn" data-accent="#E84393" style="background:#E84393"></button>
-              <button class="accent-btn" data-accent="#FF7675" style="background:#FF7675"></button>
             </div>
           </div>
 
-          <div class="settings-card">
-            <div class="settings-card__head">
-              <span class="s-icon">🔤</span>
-              <div><div class="s-title">Размер интерфейса</div><div class="s-sub">Масштаб всех элементов</div></div>
-            </div>
-            <div class="size-row">
+          <div class="card">
+            <div class="settings-row"><span class="settings-row__icon">🔤</span><div><div class="settings-row__title">Размер интерфейса</div><div class="settings-row__sub">Масштаб всех элементов</div></div></div>
+            <div class="size-grid">
               <button class="size-btn" data-size="14">S</button>
-              <button class="size-btn size-btn--active" data-size="16">M</button>
+              <button class="size-btn active" data-size="16">M</button>
               <button class="size-btn" data-size="18">L</button>
               <button class="size-btn" data-size="20">XL</button>
             </div>
-            <div class="size-preview" id="sizePreview">Размер текста — M (16px)</div>
           </div>
 
-          <div class="settings-card">
-            <div class="settings-card__head">
-              <span class="s-icon">👤</span>
-              <div><div class="s-title">Аккаунт</div><div class="s-sub">Управление профилем</div></div>
-            </div>
-            <div class="settings-btns">
+          <div class="card">
+            <div class="settings-row"><span class="settings-row__icon">👤</span><div><div class="settings-row__title">Аккаунт</div><div class="settings-row__sub">Управление профилем</div></div></div>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px">
               <button class="btn btn--outline" id="settingsEditProfile">✏️ Редактировать профиль</button>
               <button class="btn btn--danger" id="settingsLogout">🚪 Выйти</button>
             </div>
@@ -402,22 +376,17 @@
       <span>Настр.</span>
     </button>
   </nav>
-</div>
+
+</div><!-- /appScreen -->
 
 <!-- POST MODAL -->
 <div class="modal-overlay hidden" id="postModal">
   <div class="modal">
-    <div class="modal__head">
-      <h2 class="modal__title">Новая запись</h2>
-      <button class="modal__close" id="closePost">✕</button>
-    </div>
+    <div class="modal__head"><h2 class="modal__title">Новая запись</h2><button class="modal__close" id="closePost">✕</button></div>
     <div class="modal__body">
       <div class="post-author-row">
         <div class="post-author-row__av" id="modalAv">😀</div>
-        <div>
-          <span class="post-author-row__name" id="modalName">—</span>
-          <span class="post-author-row__handle" id="modalHandle">—</span>
-        </div>
+        <div><span class="post-author-row__name" id="modalName">—</span><span class="post-author-row__handle" id="modalHandle">—</span></div>
       </div>
       <div class="ta-wrap">
         <textarea class="post-ta" id="postTa" placeholder="Поделитесь мыслью..." maxlength="1000" rows="5"></textarea>
@@ -429,9 +398,7 @@
       <span class="modal__err" id="postErr"></span>
       <div class="modal__actions">
         <button class="btn btn--ghost" id="cancelPost">Отмена</button>
-        <button class="btn btn--primary" id="publishBtn" disabled>
-          <span id="publishTxt">Опубликовать</span><span class="spinner hidden" id="publishSpin"></span>
-        </button>
+        <button class="btn btn--primary" id="publishBtn" disabled><span id="publishTxt">Опубликовать</span><span class="spinner hidden" id="publishSpin"></span></button>
       </div>
     </div>
   </div>
